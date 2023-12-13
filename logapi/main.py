@@ -1,4 +1,5 @@
 """
+uvicorn main:app --reload - для запуска
 http://127.0.0.1:8000/docs - открывает Swagger UI
 """
 from logger import Logger
