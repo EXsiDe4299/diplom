@@ -1,4 +1,4 @@
-В readme.txt поместить следующие поля:
+В .env поместить следующие поля:
 
 MSSQL_DB_USER=
 MSSQL_DB_PASSWORD=
