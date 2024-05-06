@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: 51315acde8c2
+Revision ID: 98e6f8fbc3bd
 Revises: 
-Create Date: 2024-04-29 04:00:53.681929
+Create Date: 2024-05-03 07:49:46.679984
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '51315acde8c2'
+revision: str = '98e6f8fbc3bd'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,17 +31,18 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('type_id')
     )
     op.create_table('users',
+    sa.Column('user_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_telegram_id', sa.String(), nullable=False),
-    sa.Column('user_login', sa.String(), nullable=False),
-    sa.Column('user_password', sa.String(), nullable=False),
-    sa.PrimaryKeyConstraint('user_telegram_id')
+    sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('accounts',
     sa.Column('account_id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('user_id', sa.String(), nullable=False),
+    sa.Column('account_user_id', sa.Integer(), nullable=False),
+    sa.Column('account_login', sa.String(), nullable=False),
+    sa.Column('account_password', sa.String(), nullable=False),
     sa.Column('account_type_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['account_type_id'], ['account_types.type_id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_telegram_id'], ),
+    sa.ForeignKeyConstraint(['account_user_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('account_id')
     )
     op.create_table('databases',
@@ -53,8 +54,8 @@ def upgrade() -> None:
     )
     op.create_table('accounts_databases',
     sa.Column('account_database_id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('account_id', sa.Integer(), nullable=False),
     sa.Column('database_id', sa.Integer(), nullable=False),
+    sa.Column('account_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['account_id'], ['accounts.account_id'], ),
     sa.ForeignKeyConstraint(['database_id'], ['databases.database_id'], ),
     sa.PrimaryKeyConstraint('account_database_id')
