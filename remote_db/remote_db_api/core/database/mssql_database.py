@@ -10,8 +10,7 @@ from core.config import MSSQL_DB_USER, MSSQL_DB_PASSWORD, MSSQL_DB_HOST, MSSQL_D
 
 
 def get_mssql_db_url(mssql_db_user: str = MSSQL_DB_USER, mssql_db_password: str = MSSQL_DB_PASSWORD,
-                     mssql_db_host: str = MSSQL_DB_HOST,
-                     mssql_db_name: str = MSSQL_DB_NAME):
+                     mssql_db_host: str = MSSQL_DB_HOST, mssql_db_name: str = MSSQL_DB_NAME):
     connection_string = f"mssql+aioodbc://{mssql_db_user}:{mssql_db_password}@{mssql_db_host}/{mssql_db_name}?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
     return connection_string
 
@@ -19,7 +18,6 @@ def get_mssql_db_url(mssql_db_user: str = MSSQL_DB_USER, mssql_db_password: str 
 MSSQL_DATABASE_URL = get_mssql_db_url()
 
 MssqlBase = declarative_base()
-
 
 mssql_engine = create_async_engine(MSSQL_DATABASE_URL)
 autocommit_mssql_engine = mssql_engine.execution_options(isolation_level="AUTOCOMMIT")
