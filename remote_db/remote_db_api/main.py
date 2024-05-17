@@ -1,3 +1,4 @@
+import aiohttp
 import sqlalchemy
 import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
@@ -12,7 +13,7 @@ from core.schemas.database import DatabaseInteractionScheme
 from core.schemas.user import CreatedUserScheme, CreateUserScheme
 from middleware.middleware import verify_connection_string, create_or_get_user_id, \
     check_account_existing, create_new_account, create_database, add_new_account_database, user_authentication, \
-    check_databases_quantity
+    check_databases_quantity, delete_database
 
 app = FastAPI()
 
@@ -28,7 +29,7 @@ mariadb_db_dependency: AsyncSession = Depends(get_mariadb_session)
 autocommit_mariadb_db_dependency: AsyncSession = Depends(get_autocommit_mariadb_session)
 
 
-# TODO: оптимизировать sql-запросы
+# TODO: оптимизировать sql-запросы. Добавить эндпоинты для напоминания пароля
 
 # TODO: *сделать нормальный нейминг
 
@@ -50,6 +51,14 @@ async def mssql_user_create(user_data: CreateUserScheme, mssql_session=mssql_db_
                                         session=mssql_session)
     await sqlite_session.commit()
     await mssql_session.commit()
+
+    # async with aiohttp.ClientSession() as http_session:
+    #     async with http_session.post('http://25.64.51.236:5132/createDbUser',
+    #                                  json={'user_login': new_user.user_login, 'user_password': new_user.user_password,
+    #                                        'telegram_id': user_data.user_telegram_id,
+    #                                        'db_type': 'mssql'}, headers={'content-type': 'application/json'}):
+    #         pass
+
     return new_user
 
 
@@ -83,6 +92,26 @@ async def mssql_db_create(data: DatabaseInteractionScheme, autocommit_mssql_sess
     await sqlite_session.commit()
 
     return connection_string
+
+
+@app.delete('/mssql/database/delete')
+async def mssql_db_delete(data: DatabaseInteractionScheme, autocommit_mssql_session=autocommit_mssql_db_dependency,
+                          sqlite_session=sqlite_db_dependency):
+    account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
+                                                  dbms_name=autocommit_mssql_session.get_bind().name)
+
+    if not account_exists:
+        raise HTTPException(400, detail="Unregistered")
+
+    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='mssql')
+    if not successful_authentication:
+        raise HTTPException(401, detail="Incorrect login or password")
+
+    try:
+        await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_mssql_session)
+    except ProgrammingError:
+        raise HTTPException(400, "The database doesn't exist")
+    await sqlite_session.commit()
 
 
 @app.post('/mssql/database/get-connection-string')
@@ -123,6 +152,14 @@ async def pg_user_create(user_data: CreateUserScheme, sqlite_session=sqlite_db_d
                                         session=postgres_session)
     await sqlite_session.commit()
     await postgres_session.commit()
+
+    # async with aiohttp.ClientSession() as http_session:
+    #     async with http_session.post('http://25.64.51.236:5132/createDbUser',
+    #                                  json={'user_login': new_user.user_login, 'user_password': new_user.user_password,
+    #                                        'telegram_id': user_data.user_telegram_id,
+    #                                        'db_type': 'postgresql'}, headers={'content-type': 'application/json'}):
+    #         pass
+
     return new_user
 
 
@@ -140,7 +177,8 @@ async def pg_db_create(data: DatabaseInteractionScheme, autocommit_postgres_sess
     if not successful_authentication:
         raise HTTPException(401, detail="Incorrect login or password")
 
-    acceptable_quantity = await check_databases_quantity(data=data, sqlite_session=sqlite_session, dbms_name='postgresql')
+    acceptable_quantity = await check_databases_quantity(data=data, sqlite_session=sqlite_session,
+                                                         dbms_name='postgresql')
     if not acceptable_quantity:
         raise HTTPException(400, detail='You have the maximum number of databases')
 
@@ -157,6 +195,26 @@ async def pg_db_create(data: DatabaseInteractionScheme, autocommit_postgres_sess
 
     await sqlite_session.commit()
     return connection_string
+
+
+@app.delete('/postgresql/database/delete')
+async def pg_db_delete(data: DatabaseInteractionScheme, autocommit_postgres_session=autocommit_postgres_db_dependency,
+                       sqlite_session=sqlite_db_dependency):
+    account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
+                                                  dbms_name=autocommit_postgres_session.get_bind().name)
+
+    if not account_exists:
+        raise HTTPException(400, detail="Unregistered")
+
+    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='postgresql')
+    if not successful_authentication:
+        raise HTTPException(401, detail="Incorrect login or password")
+
+    try:
+        await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_postgres_session)
+    except ProgrammingError:
+        raise HTTPException(400, "The database doesn't exist")
+    await sqlite_session.commit()
 
 
 @app.post('/postgresql/database/get-connection-string')
@@ -198,6 +256,14 @@ async def mariadb_user_create(user_data: CreateUserScheme, sqlite_session=sqlite
                                         session=mariadb_session)
     await sqlite_session.commit()
     await mariadb_session.commit()
+
+    # async with aiohttp.ClientSession() as http_session:
+    #     async with http_session.post('http://25.64.51.236:5132/createDbUser',
+    #                                  json={'user_login': new_user.user_login, 'user_password': new_user.user_password,
+    #                                        'telegram_id': user_data.user_telegram_id,
+    #                                        'db_type': 'mariadb'}, headers={'content-type': 'application/json'}):
+    #         pass
+
     return new_user
 
 
@@ -233,10 +299,30 @@ async def mariadb_db_create(data: DatabaseInteractionScheme,
     return connection_string
 
 
+@app.delete('/mariadb/database/delete')
+async def mariadb_db_delete(data: DatabaseInteractionScheme, autocommit_mariadb_session=autocommit_mariadb_db_dependency,
+                            sqlite_session=sqlite_db_dependency):
+    account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
+                                                  dbms_name=autocommit_mariadb_session.get_bind().name)
+
+    if not account_exists:
+        raise HTTPException(400, detail="Unregistered")
+
+    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='mysql')
+    if not successful_authentication:
+        raise HTTPException(401, detail="Incorrect login or password")
+
+    try:
+        await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_mariadb_session)
+    except ProgrammingError:
+        raise HTTPException(400, "The database doesn't exist")
+    await sqlite_session.commit()
+
+
 @app.post('/mariadb/database/get-connection-string')
 async def mariadb_db_get_conn_str(data: DatabaseInteractionScheme, sqlite_session=sqlite_db_dependency):
     account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
-                                                  dbms_name='mssql')
+                                                  dbms_name='mysql')
 
     if not account_exists:
         raise HTTPException(400, detail="Unregistered")

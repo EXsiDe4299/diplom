@@ -1,7 +1,7 @@
 import secrets
 import string
 
-from sqlalchemy import text, select, and_
+from sqlalchemy import text, select, and_, delete
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from core.models.sqlite_models import User, Account, Database, AccountDatabase
@@ -163,6 +163,34 @@ async def check_databases_quantity(data: DatabaseInteractionScheme, sqlite_sessi
         return False
     else:
         return True
+
+
+async def delete_database(data: DatabaseInteractionScheme, sqlite_session: AsyncSession, session: AsyncSession):
+    dbms_name = session.get_bind().name
+    database_type_id = int()
+    match dbms_name:
+        case 'mssql':
+            database_type_id = 1
+        case 'postgresql':
+            database_type_id = 2
+        case 'mysql':
+            database_type_id = 3
+    database = await sqlite_session.execute(select(Database).filter(
+        and_(Database.database_name == data.database_name, Database.database_type_id == database_type_id)))
+    database = database.first()[0]
+    database_id: int = database.database_id
+    database_name = database.database_name
+    match database_type_id:
+        case 1:
+            await session.execute(text(f"ALTER DATABASE {database_name} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;"))
+            await session.execute(text(f"ALTER DATABASE {database_name} SET MULTI_USER;"))  # предположительно лишняя операция
+            await session.execute(text(f"DROP DATABASE {database_name};"))
+        case 2:
+            await session.execute(text(f"DROP DATABASE {database_name} WITH (FORCE);"))
+        case 3:
+            await session.execute(text(f"DROP DATABASE {database_name};"))
+    await sqlite_session.execute(delete(AccountDatabase).filter(AccountDatabase.database_id == database_id))
+    await sqlite_session.execute(delete(Database).filter(Database.database_id == database_id))
 
 
 # connection string
