@@ -2,6 +2,7 @@ import aiohttp
 import sqlalchemy
 import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,11 +10,12 @@ from core.database.mariadb_database import get_mariadb_db_url, get_mariadb_sessi
 from core.database.mssql_database import get_mssql_session, get_autocommit_mssql_session, get_mssql_db_url
 from core.database.postgres_database import get_postgres_session, get_postgres_db_url, get_autocommit_postgres_session
 from core.database.sqlite_database import get_sqlite_session
+from core.models.sqlite_models import Account, User
 from core.schemas.database import DatabaseInteractionScheme
 from core.schemas.user import CreatedUserScheme, CreateUserScheme
 from middleware.middleware import verify_connection_string, create_or_get_user_id, \
     check_account_existing, create_new_account, create_database, add_new_account_database, user_authentication, \
-    check_databases_quantity, delete_database
+    check_databases_quantity, delete_database, remind_password
 
 app = FastAPI()
 
@@ -60,6 +62,17 @@ async def mssql_user_create(user_data: CreateUserScheme, mssql_session=mssql_db_
     #         pass
 
     return new_user
+
+
+@app.post('/mssql/user/remind-password')
+async def mssql_remind_password(user_data: CreateUserScheme, sqlite_session=sqlite_db_dependency):
+    account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
+                                                  dbms_name="mssql")
+    if not account_exists:
+        raise HTTPException(400, detail="Unregistered")
+
+    user_password = await remind_password(user_data=user_data, sqlite_session=sqlite_session, dbms_name='mssql')
+    return user_password
 
 
 @app.post('/mssql/database/create', status_code=201)
@@ -109,7 +122,7 @@ async def mssql_db_delete(data: DatabaseInteractionScheme, autocommit_mssql_sess
 
     try:
         await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_mssql_session)
-    except ProgrammingError:
+    except TypeError:
         raise HTTPException(400, "The database doesn't exist")
     await sqlite_session.commit()
 
@@ -163,6 +176,17 @@ async def pg_user_create(user_data: CreateUserScheme, sqlite_session=sqlite_db_d
     return new_user
 
 
+@app.post('/postgresql/user/remind-password')
+async def mssql_remind_password(user_data: CreateUserScheme, sqlite_session=sqlite_db_dependency):
+    account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
+                                                  dbms_name="postgresql")
+    if not account_exists:
+        raise HTTPException(400, detail="Unregistered")
+
+    user_password = await remind_password(user_data=user_data, sqlite_session=sqlite_session, dbms_name='postgresql')
+    return user_password
+
+
 @app.post('/postgresql/database/create', status_code=201)
 async def pg_db_create(data: DatabaseInteractionScheme, autocommit_postgres_session=autocommit_postgres_db_dependency,
                        sqlite_session=sqlite_db_dependency):
@@ -206,13 +230,14 @@ async def pg_db_delete(data: DatabaseInteractionScheme, autocommit_postgres_sess
     if not account_exists:
         raise HTTPException(400, detail="Unregistered")
 
-    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='postgresql')
+    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session,
+                                                          dbms_name='postgresql')
     if not successful_authentication:
         raise HTTPException(401, detail="Incorrect login or password")
 
     try:
         await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_postgres_session)
-    except ProgrammingError:
+    except TypeError:
         raise HTTPException(400, "The database doesn't exist")
     await sqlite_session.commit()
 
@@ -267,6 +292,17 @@ async def mariadb_user_create(user_data: CreateUserScheme, sqlite_session=sqlite
     return new_user
 
 
+@app.post('/mariadb/user/remind-password')
+async def mssql_remind_password(user_data: CreateUserScheme, sqlite_session=sqlite_db_dependency):
+    account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
+                                                  dbms_name="mysql")
+    if not account_exists:
+        raise HTTPException(400, detail="Unregistered")
+
+    user_password = await remind_password(user_data=user_data, sqlite_session=sqlite_session, dbms_name='mysql')
+    return user_password
+
+
 @app.post('/mariadb/database/create', status_code=201)
 async def mariadb_db_create(data: DatabaseInteractionScheme,
                             autocommit_mariadb_session=autocommit_mariadb_db_dependency,
@@ -300,7 +336,8 @@ async def mariadb_db_create(data: DatabaseInteractionScheme,
 
 
 @app.delete('/mariadb/database/delete')
-async def mariadb_db_delete(data: DatabaseInteractionScheme, autocommit_mariadb_session=autocommit_mariadb_db_dependency,
+async def mariadb_db_delete(data: DatabaseInteractionScheme,
+                            autocommit_mariadb_session=autocommit_mariadb_db_dependency,
                             sqlite_session=sqlite_db_dependency):
     account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
                                                   dbms_name=autocommit_mariadb_session.get_bind().name)
@@ -314,7 +351,7 @@ async def mariadb_db_delete(data: DatabaseInteractionScheme, autocommit_mariadb_
 
     try:
         await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_mariadb_session)
-    except ProgrammingError:
+    except TypeError:
         raise HTTPException(400, "The database doesn't exist")
     await sqlite_session.commit()
 

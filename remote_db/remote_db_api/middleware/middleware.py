@@ -94,6 +94,22 @@ async def create_new_account(*, user_id: int, user_data: CreateUserScheme, sqlit
     return new_user
 
 
+async def remind_password(user_data: CreateUserScheme, sqlite_session: AsyncSession, dbms_name: str):
+    account_type_id = int()
+    match dbms_name:
+        case 'mssql':
+            account_type_id = 1
+        case 'postgresql':
+            account_type_id = 2
+        case 'mysql':
+            account_type_id = 3
+    user_password = await sqlite_session.execute(
+        select(Account.account_password).join(User).filter(User.user_telegram_id == user_data.user_telegram_id).filter(
+            Account.account_login == user_data.user_login).filter(Account.account_type_id == account_type_id))
+    user_password = user_password.first()[0]
+    return user_password
+
+
 # database
 async def create_database(data: DatabaseInteractionScheme, session: AsyncSession):
     dbms_name = session.get_bind().name
@@ -182,9 +198,9 @@ async def delete_database(data: DatabaseInteractionScheme, sqlite_session: Async
     database_name = database.database_name
     match database_type_id:
         case 1:
-            await session.execute(text(f"ALTER DATABASE {database_name} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;"))
-            await session.execute(text(f"ALTER DATABASE {database_name} SET MULTI_USER;"))  # предположительно лишняя операция
-            await session.execute(text(f"DROP DATABASE {database_name};"))
+            await session.execute(text(f"USE master;\n" +
+                                       f"ALTER DATABASE {database_name} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\n" +
+                                       f"DROP DATABASE {database_name};"))
         case 2:
             await session.execute(text(f"DROP DATABASE {database_name} WITH (FORCE);"))
         case 3:
