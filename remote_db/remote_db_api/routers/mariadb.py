@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database.mariadb_database import get_mariadb_db_url, get_mariadb_session, get_autocommit_mariadb_session
 from core.database.sqlite_database import get_sqlite_session
 from core.schemas.database import DatabaseInteractionScheme
-from core.schemas.user import CreatedUserScheme, CreateUserScheme
+from core.schemas.account import CreatedAccountScheme, CreateAccountScheme
 from middleware.middleware import verify_connection_string, create_or_get_user_id, \
     check_account_existing, create_new_account, create_database, add_new_account_database, user_authentication, \
     check_databases_quantity, delete_database, remind_password
@@ -19,8 +19,8 @@ mariadb_db_dependency: AsyncSession = Depends(get_mariadb_session)
 autocommit_mariadb_db_dependency: AsyncSession = Depends(get_autocommit_mariadb_session)
 
 
-@mariadb_router.post("/user/create", response_model=CreatedUserScheme, status_code=201)
-async def mariadb_user_create(user_data: CreateUserScheme, sqlite_session=sqlite_db_dependency,
+@mariadb_router.post("/user/create", response_model=CreatedAccountScheme, status_code=201)
+async def mariadb_user_create(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency,
                               mariadb_session=mariadb_db_dependency):
     user_id = await create_or_get_user_id(user_data=user_data, sqlite_session=sqlite_session)
 
@@ -46,7 +46,7 @@ async def mariadb_user_create(user_data: CreateUserScheme, sqlite_session=sqlite
 
 
 @mariadb_router.post('/user/remind-password')
-async def mssql_remind_password(user_data: CreateUserScheme, sqlite_session=sqlite_db_dependency):
+async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency):
     account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
                                                   dbms_name="mysql")
     if not account_exists:
@@ -79,8 +79,8 @@ async def mariadb_db_create(data: DatabaseInteractionScheme,
     except ProgrammingError:
         raise HTTPException(400, "The database exists")
 
-    connection_string = get_mariadb_db_url(mariadb_db_user=data.user_login,
-                                           mariadb_db_password=data.user_password,
+    connection_string = get_mariadb_db_url(mariadb_db_user=data.account_login,
+                                           mariadb_db_password=data.account_password,
                                            mariadb_db_name=data.database_name)
     await add_new_account_database(data=data, sqlite_session=sqlite_session, session=autocommit_mariadb_session)
 
@@ -105,7 +105,7 @@ async def mariadb_db_delete(data: DatabaseInteractionScheme,
     try:
         await delete_database(data=data, sqlite_session=sqlite_session, session=autocommit_mariadb_session)
     except TypeError:
-        raise HTTPException(400, "The database doesn't exist")
+        raise HTTPException(404, "The database doesn't exist")
     await sqlite_session.commit()
 
 
@@ -121,8 +121,8 @@ async def mariadb_db_get_conn_str(data: DatabaseInteractionScheme, sqlite_sessio
     if not successful_authentication:
         raise HTTPException(401, detail="Incorrect login or password")
 
-    connection_string = get_mariadb_db_url(mariadb_db_user=data.user_login,
-                                           mariadb_db_password=data.user_password,
+    connection_string = get_mariadb_db_url(mariadb_db_user=data.account_login,
+                                           mariadb_db_password=data.account_password,
                                            mariadb_db_name=data.database_name)
 
     try:

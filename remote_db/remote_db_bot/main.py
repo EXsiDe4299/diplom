@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from os import getenv
 
 from aiogram.client.default import DefaultBotProperties
@@ -23,4 +24,5 @@ async def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())

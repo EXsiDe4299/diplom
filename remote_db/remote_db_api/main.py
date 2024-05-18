@@ -5,7 +5,8 @@ from routers.mariadb import mariadb_router
 from routers.mssql import mssql_router
 from routers.postgresql import postgresql_router
 
-# TODO: оптимизировать sql-запросы.
+# TODO: оптимизировать sql-запросы. если базы не существует и попытаться получить строку подключения, то возникает 500
+#  код
 
 # TODO: *сделать нормальный нейминг
 

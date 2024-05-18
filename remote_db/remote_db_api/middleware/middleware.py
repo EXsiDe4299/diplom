@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from core.models.sqlite_models import User, Account, Database, AccountDatabase
 from core.schemas.database import DatabaseInteractionScheme
-from core.schemas.user import CreateUserScheme, CreatedUserScheme
+from core.schemas.account import CreateAccountScheme, CreatedAccountScheme
 
 
 # user
@@ -28,7 +28,7 @@ async def verify_connection_string(connection_string):
             await test_engine.dispose()
 
 
-async def create_or_get_user_id(user_data: CreateUserScheme, sqlite_session: AsyncSession):
+async def create_or_get_user_id(user_data: CreateAccountScheme, sqlite_session: AsyncSession):
     user = await sqlite_session.execute(select(User).filter(User.user_telegram_id == user_data.user_telegram_id))
     user = user.first()
     if not user:
@@ -42,7 +42,8 @@ async def create_or_get_user_id(user_data: CreateUserScheme, sqlite_session: Asy
     return user_id
 
 
-async def check_account_existing(user_data: CreateUserScheme | DatabaseInteractionScheme, sqlite_session: AsyncSession,
+async def check_account_existing(user_data: CreateAccountScheme | DatabaseInteractionScheme,
+                                 sqlite_session: AsyncSession,
                                  dbms_name: str):
     account_type_id = int()
     match dbms_name:
@@ -62,7 +63,7 @@ async def check_account_existing(user_data: CreateUserScheme | DatabaseInteracti
         return False
 
 
-async def create_new_account(*, user_id: int, user_data: CreateUserScheme, sqlite_session: AsyncSession,
+async def create_new_account(*, user_id: int, user_data: CreateAccountScheme, sqlite_session: AsyncSession,
                              session: AsyncSession):
     dbms_name = session.get_bind().name
     alphabet = string.ascii_letters + string.digits
@@ -72,29 +73,30 @@ async def create_new_account(*, user_id: int, user_data: CreateUserScheme, sqlit
     match dbms_name:
         case 'mssql':
             account_type_id = 1
-            create_user_query = ("USE remote_db;\n" +
-                                 f"CREATE LOGIN {user_data.user_login} WITH PASSWORD='{user_password}';\n\n" +
-                                 f"ALTER SERVER ROLE dbcreator ADD MEMBER {user_data.user_login};\n" +
+            create_user_query = ("USE master;\n" +
+                                 f"CREATE LOGIN {user_data.account_login} WITH PASSWORD='{user_password}';\n\n" +
+                                 f"ALTER SERVER ROLE dbcreator ADD MEMBER {user_data.account_login};\n" +
                                  "USE master;\n" +
-                                 f"GRANT CREATE ANY DATABASE TO {user_data.user_login};")
+                                 f"GRANT CREATE ANY DATABASE TO {user_data.account_login};")
         case 'postgresql':
             account_type_id = 2
-            create_user_query = f"CREATE USER {user_data.user_login} WITH PASSWORD '{user_password}' CREATEDB;"
+            create_user_query = f"CREATE USER {user_data.account_login} WITH PASSWORD '{user_password}' CREATEDB;"
         case 'mysql':
             account_type_id = 3
-            create_user_query = f"CREATE USER '{user_data.user_login}'@localhost IDENTIFIED BY '{user_password}';"
+            create_user_query = f"CREATE USER '{user_data.account_login}'@localhost IDENTIFIED BY '{user_password}';"
 
-    new_account = Account(account_user_id=user_id, account_login=user_data.user_login, account_password=user_password,
+    new_account = Account(account_user_id=user_id, account_login=user_data.account_login,
+                          account_password=user_password,
                           account_type_id=account_type_id)
     sqlite_session.add(new_account)
 
     await session.execute(text(create_user_query))
 
-    new_user = CreatedUserScheme(user_login=user_data.user_login, user_password=user_password)
+    new_user = CreatedAccountScheme(account_login=user_data.account_login, account_password=user_password)
     return new_user
 
 
-async def remind_password(user_data: CreateUserScheme, sqlite_session: AsyncSession, dbms_name: str):
+async def remind_password(user_data: CreateAccountScheme, sqlite_session: AsyncSession, dbms_name: str):
     account_type_id = int()
     match dbms_name:
         case 'mssql':
@@ -105,7 +107,7 @@ async def remind_password(user_data: CreateUserScheme, sqlite_session: AsyncSess
             account_type_id = 3
     user_password = await sqlite_session.execute(
         select(Account.account_password).join(User).filter(User.user_telegram_id == user_data.user_telegram_id).filter(
-            Account.account_login == user_data.user_login).filter(Account.account_type_id == account_type_id))
+            Account.account_login == user_data.account_login).filter(Account.account_type_id == account_type_id))
     user_password = user_password.first()[0]
     return user_password
 
@@ -117,14 +119,14 @@ async def create_database(data: DatabaseInteractionScheme, session: AsyncSession
         case 'mssql':
             await session.execute(text(f"CREATE DATABASE {data.database_name}"))
             await session.execute(text(f"USE {data.database_name};\n" +
-                                       f"CREATE USER {data.user_login} FOR LOGIN {data.user_login}"))
+                                       f"CREATE USER {data.account_login} FOR LOGIN {data.account_login}"))
         case 'postgresql':
             await session.execute(
-                text(f"CREATE DATABASE {data.database_name} OWNER {data.user_login};"))
+                text(f"CREATE DATABASE {data.database_name} OWNER {data.account_login};"))
         case 'mysql':
             await session.execute(text(f"CREATE DATABASE {data.database_name}"))
             await session.execute(
-                text(f"GRANT ALL PRIVILEGES ON {data.database_name}.* TO {data.user_login}@localhost;"))
+                text(f"GRANT ALL PRIVILEGES ON {data.database_name}.* TO {data.account_login}@localhost;"))
 
 
 async def add_new_account_database(data: DatabaseInteractionScheme, sqlite_session: AsyncSession,
@@ -225,7 +227,7 @@ async def user_authentication(data: DatabaseInteractionScheme, sqlite_session: A
                                                Account.account_type_id == account_type_id)))
     user = user.first()[0]
 
-    if user.account_login != data.user_login or user.account_password != data.user_password:
+    if user.account_login != data.account_login or user.account_password != data.account_password:
         return False
     else:
         return True
