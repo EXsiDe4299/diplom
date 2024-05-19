@@ -23,7 +23,6 @@ async def verify_connection_string(connection_string):
                 case 'mysql':
                     await session.execute(text("SELECT @@version"))
         finally:
-            # pass
             await session.close()
             await test_engine.dispose()
 

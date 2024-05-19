@@ -21,7 +21,7 @@ mariadb_db_dependency: AsyncSession = Depends(get_mariadb_session)
 autocommit_mariadb_db_dependency: AsyncSession = Depends(get_autocommit_mariadb_session)
 
 
-@mariadb_router.post("/user/create", response_model=CreatedAccountScheme, status_code=201)
+@mariadb_router.post("/account/create", response_model=CreatedAccountScheme, status_code=201)
 async def mariadb_user_create(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency,
                               mariadb_session=mariadb_db_dependency):
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
@@ -51,7 +51,7 @@ async def mariadb_user_create(user_data: CreateAccountScheme, sqlite_session=sql
     return new_user
 
 
-@mariadb_router.post('/user/remind-password')
+@mariadb_router.post('/account/remind-password')
 async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency):
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
     if not user_exists:

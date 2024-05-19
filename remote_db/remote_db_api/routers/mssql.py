@@ -21,7 +21,7 @@ mssql_db_dependency: AsyncSession = Depends(get_mssql_session)
 autocommit_mssql_db_dependency: AsyncSession = Depends(get_autocommit_mssql_session)
 
 
-@mssql_router.post('/user/create', response_model=CreatedAccountScheme, status_code=201)
+@mssql_router.post('/account/create', response_model=CreatedAccountScheme, status_code=201)
 async def mssql_user_create(user_data: CreateAccountScheme, mssql_session=mssql_db_dependency,
                             sqlite_session=sqlite_db_dependency):
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
@@ -51,7 +51,7 @@ async def mssql_user_create(user_data: CreateAccountScheme, mssql_session=mssql_
     return new_user
 
 
-@mssql_router.post('/user/remind-password')
+@mssql_router.post('/account/remind-password')
 async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency):
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
     if not user_exists:

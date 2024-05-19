@@ -22,7 +22,7 @@ postgres_db_dependency: AsyncSession = Depends(get_postgres_session)
 autocommit_postgres_db_dependency: AsyncSession = Depends(get_autocommit_postgres_session)
 
 
-@postgresql_router.post("/user/create", response_model=CreatedAccountScheme, status_code=201)
+@postgresql_router.post("/account/create", response_model=CreatedAccountScheme, status_code=201)
 async def pg_user_create(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency,
                          postgres_session=postgres_db_dependency):
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
@@ -52,7 +52,7 @@ async def pg_user_create(user_data: CreateAccountScheme, sqlite_session=sqlite_d
     return new_user
 
 
-@postgresql_router.post('/user/remind-password')
+@postgresql_router.post('/account/remind-password')
 async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency):
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
     if not user_exists:
