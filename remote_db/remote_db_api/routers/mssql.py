@@ -7,9 +7,11 @@ from core.database.mssql_database import get_mssql_session, get_autocommit_mssql
 from core.database.sqlite_database import get_sqlite_session
 from core.schemas.database import DatabaseInteractionScheme
 from core.schemas.account import CreatedAccountScheme, CreateAccountScheme
-from middleware.middleware import verify_connection_string, create_or_get_user_id, \
-    check_account_existing, create_new_account, create_database, add_new_account_database, user_authentication, \
-    check_databases_quantity, delete_database, remind_password
+from middleware.account_middleware import get_user_id, check_account_existing, create_new_account, \
+    remind_password, account_authentication, verify_connection_string
+from middleware.database_middleware import check_databases_quantity, create_database, add_new_account_database, \
+    delete_database
+from middleware.user_middleware import check_user_existing
 
 mssql_router = APIRouter()
 
@@ -22,13 +24,17 @@ autocommit_mssql_db_dependency: AsyncSession = Depends(get_autocommit_mssql_sess
 @mssql_router.post('/user/create', response_model=CreatedAccountScheme, status_code=201)
 async def mssql_user_create(user_data: CreateAccountScheme, mssql_session=mssql_db_dependency,
                             sqlite_session=sqlite_db_dependency):
-    user_id = await create_or_get_user_id(user_data=user_data, sqlite_session=sqlite_session)
+    user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
+    if not user_exists:
+        raise HTTPException(400, detail="Unknown user")
+
+    user_id = await get_user_id(user_data=user_data, sqlite_session=sqlite_session)
 
     account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
                                                   dbms_name=mssql_session.get_bind().name)
 
     if account_exists:
-        raise HTTPException(400, detail="You're already registered")
+        raise HTTPException(400, detail="You already have an account")
 
     new_user = await create_new_account(user_id=user_id, user_data=user_data, sqlite_session=sqlite_session,
                                         session=mssql_session)
@@ -47,10 +53,14 @@ async def mssql_user_create(user_data: CreateAccountScheme, mssql_session=mssql_
 
 @mssql_router.post('/user/remind-password')
 async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency):
+    user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
+    if not user_exists:
+        raise HTTPException(400, detail="Unknown user")
+
     account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
                                                   dbms_name="mssql")
     if not account_exists:
-        raise HTTPException(400, detail="Unregistered")
+        raise HTTPException(400, detail="You don't have an account in this DBMS")
 
     user_password = await remind_password(user_data=user_data, sqlite_session=sqlite_session, dbms_name='mssql')
     return user_password
@@ -59,13 +69,18 @@ async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=s
 @mssql_router.post('/database/create', status_code=201)
 async def mssql_db_create(data: DatabaseInteractionScheme, autocommit_mssql_session=autocommit_mssql_db_dependency,
                           sqlite_session=sqlite_db_dependency):
+    user_exists = await check_user_existing(user_data=data, sqlite_session=sqlite_session)
+    if not user_exists:
+        raise HTTPException(400, detail="Unknown user")
+
     account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
                                                   dbms_name=autocommit_mssql_session.get_bind().name)
 
     if not account_exists:
-        raise HTTPException(400, detail="Unregistered")
+        raise HTTPException(400, detail="You don't have an account in this DBMS")
 
-    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='mssql')
+    successful_authentication = await account_authentication(data=data, sqlite_session=sqlite_session,
+                                                             dbms_name='mssql')
     if not successful_authentication:
         raise HTTPException(401, detail="Incorrect login or password")
 
@@ -91,13 +106,18 @@ async def mssql_db_create(data: DatabaseInteractionScheme, autocommit_mssql_sess
 @mssql_router.delete('/database/delete')
 async def mssql_db_delete(data: DatabaseInteractionScheme, autocommit_mssql_session=autocommit_mssql_db_dependency,
                           sqlite_session=sqlite_db_dependency):
+    user_exists = await check_user_existing(user_data=data, sqlite_session=sqlite_session)
+    if not user_exists:
+        raise HTTPException(400, detail="Unknown user")
+
     account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
                                                   dbms_name=autocommit_mssql_session.get_bind().name)
 
     if not account_exists:
-        raise HTTPException(400, detail="Unregistered")
+        raise HTTPException(400, detail="You don't have an account in this DBMS")
 
-    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='mssql')
+    successful_authentication = await account_authentication(data=data, sqlite_session=sqlite_session,
+                                                             dbms_name='mssql')
     if not successful_authentication:
         raise HTTPException(401, detail="Incorrect login or password")
 
@@ -110,13 +130,18 @@ async def mssql_db_delete(data: DatabaseInteractionScheme, autocommit_mssql_sess
 
 @mssql_router.post('/database/get-connection-string')
 async def mssql_db_get_conn_str(data: DatabaseInteractionScheme, sqlite_session=sqlite_db_dependency):
+    user_exists = await check_user_existing(user_data=data, sqlite_session=sqlite_session)
+    if not user_exists:
+        raise HTTPException(400, detail="Unknown user")
+
     account_exists = await check_account_existing(user_data=data, sqlite_session=sqlite_session,
                                                   dbms_name='mssql')
 
     if not account_exists:
-        raise HTTPException(400, detail="Unregistered")
+        raise HTTPException(400, detail="You don't have an account in this DBMS")
 
-    successful_authentication = await user_authentication(data=data, sqlite_session=sqlite_session, dbms_name='mssql')
+    successful_authentication = await account_authentication(data=data, sqlite_session=sqlite_session,
+                                                             dbms_name='mssql')
     if not successful_authentication:
         raise HTTPException(401, detail="Incorrect login or password")
 
