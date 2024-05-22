@@ -3,10 +3,12 @@ import string
 
 from sqlalchemy import text, select, and_
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import joinedload
 
-from core.models.sqlite_models import User, Account
+from core.models.sqlite_models import User, Account, AccountTypes
 from core.schemas.account import CreateAccountScheme, CreatedAccountScheme
 from core.schemas.database import DatabaseInteractionScheme
+from core.schemas.user import UserScheme
 
 
 async def verify_connection_string(connection_string):
@@ -32,6 +34,14 @@ async def get_user_id(user_data: CreateAccountScheme, sqlite_session: AsyncSessi
     user = user.first()[0]
     user_id = user.user_id
     return user_id
+
+
+async def get_user_accounts(user_data: UserScheme, sqlite_session: AsyncSession):
+    accounts = await sqlite_session.execute(
+        select(Account).join(User).filter(User.user_telegram_id == user_data.user_telegram_id))
+    # accounts = await sqlite_session.execute(select(Account).join(Account.users).filter(User.user_telegram_id==user_data.user_telegram_id).options(joinedload(Account.account_types)))
+    accounts = accounts.scalars().all()
+    return accounts
 
 
 async def check_account_existing(user_data: CreateAccountScheme | DatabaseInteractionScheme,

@@ -1,3 +1,4 @@
+import aiohttp
 import sqlalchemy
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.exc import ProgrammingError
