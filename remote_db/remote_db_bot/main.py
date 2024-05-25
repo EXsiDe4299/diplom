@@ -7,8 +7,9 @@ from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 
-load_dotenv()
 from handlers.user_private import user_private_router
+
+load_dotenv()
 
 # ALLOWED_UPDATES = ['message', 'callback_query']
 

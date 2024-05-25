@@ -1,0 +1,5 @@
+registration_url = 'http://127.0.0.1:8000/registration'
+get_accounts_url = 'http://127.0.0.1:8000/get-accounts'
+mssql_account_create_url = 'http://127.0.0.1:8000/mssql/account/create'
+pg_account_create_url = 'http://127.0.0.1:8000/postgresql/account/create'
+mariadb_account_create_url = 'http://127.0.0.1:8000/mariadb/account/create'
