@@ -9,10 +9,8 @@ from routers.database import database_router
 # from routers.mssql import mssql_router
 # from routers.postgresql import postgresql_router
 
-# TODO: сделать вместо отдельных роутеров для каждой субд обычный прием названия/id субд в теле запроса и таким образом
-#  убрать большое количество одинакового кода
 
-# TODO: оптимизировать sql-запросы
+# TODO: оптимизировать sql-запросы, убрать повторы кода проверок в эндпоинтах
 
 # TODO: *сделать нормальный нейминг
 

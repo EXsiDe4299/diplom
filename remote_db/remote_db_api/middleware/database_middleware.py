@@ -3,22 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 
 from core.models.sqlite_models import User, Account, Database, AccountDatabase
 from core.schemas.database import DatabaseInteractionScheme
+from middleware.i_will_call_it_later import db_stuff
 
 
 async def create_database(data: DatabaseInteractionScheme, session: AsyncSession):
     dbms_name = session.get_bind().name
-    match dbms_name:
-        case 'mssql':
-            await session.execute(text(f"CREATE DATABASE {data.database_name}"))
-            await session.execute(text(f"USE {data.database_name};\n" +
-                                       f"CREATE USER {data.account_login} FOR LOGIN {data.account_login}"))
-        case 'postgresql':
-            await session.execute(
-                text(f"CREATE DATABASE {data.database_name} OWNER {data.account_login};"))
-        case 'mysql':
-            await session.execute(text(f"CREATE DATABASE {data.database_name}"))
-            await session.execute(
-                text(f"GRANT ALL PRIVILEGES ON {data.database_name}.* TO {data.account_login}@localhost;"))
+    for query in db_stuff[dbms_name]['create_database_query'](database_name=data.database_name,
+                                                              account_login=data.account_login):
+        await session.execute(text(query))
 
 
 async def verify_connection_string(connection_string):
@@ -27,13 +19,7 @@ async def verify_connection_string(connection_string):
     test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     async with test_session() as session:
         try:
-            match test_engine_name:
-                case 'mssql':
-                    await session.execute(text("SELECT @@VERSION"))
-                case 'postgresql':
-                    await session.execute(text("SELECT version()"))
-                case 'mysql':
-                    await session.execute(text("SELECT @@version"))
+            await session.execute(text(db_stuff[test_engine_name]['select_version_query']))
         finally:
             await session.close()
             await test_engine.dispose()
@@ -41,19 +27,9 @@ async def verify_connection_string(connection_string):
 
 async def add_new_account_database(data: DatabaseInteractionScheme, sqlite_session: AsyncSession,
                                    session: AsyncSession):
-    account_type_id = int()
-    database_type_id = int()
     dbms_name = session.get_bind().name
-    match dbms_name:
-        case 'mssql':
-            account_type_id = 1
-            database_type_id = 1
-        case 'postgresql':
-            account_type_id = 2
-            database_type_id = 2
-        case 'mysql':
-            account_type_id = 3
-            database_type_id = 3
+    account_type_id = db_stuff[dbms_name]['account_type_id']
+    database_type_id = db_stuff[dbms_name]['database_type_id']
 
     new_database = Database(database_name=data.database_name, database_type_id=database_type_id)
     sqlite_session.add(new_database)
@@ -71,14 +47,7 @@ async def add_new_account_database(data: DatabaseInteractionScheme, sqlite_sessi
 
 
 async def check_databases_quantity(data: DatabaseInteractionScheme, sqlite_session: AsyncSession, dbms_name: str):
-    account_type_id = int()
-    match dbms_name:
-        case 'mssql':
-            account_type_id = 1
-        case 'postgresql':
-            account_type_id = 2
-        case 'mysql':
-            account_type_id = 3
+    account_type_id = db_stuff[dbms_name]['account_type_id']
     account = await sqlite_session.execute(select(Account.account_id).
                                            join(User).filter(and_(User.user_telegram_id == data.user_telegram_id,
                                                                   Account.account_type_id == account_type_id)))
@@ -95,27 +64,13 @@ async def check_databases_quantity(data: DatabaseInteractionScheme, sqlite_sessi
 
 async def delete_database(data: DatabaseInteractionScheme, sqlite_session: AsyncSession, session: AsyncSession):
     dbms_name = session.get_bind().name
-    database_type_id = int()
-    match dbms_name:
-        case 'mssql':
-            database_type_id = 1
-        case 'postgresql':
-            database_type_id = 2
-        case 'mysql':
-            database_type_id = 3
+    database_type_id = db_stuff[dbms_name]['database_type_id']
+
     database = await sqlite_session.execute(select(Database).filter(
         and_(Database.database_name == data.database_name, Database.database_type_id == database_type_id)))
     database = database.first()[0]
     database_id: int = database.database_id
     database_name = database.database_name
-    match database_type_id:
-        case 1:
-            await session.execute(text(f"USE master;\n" +
-                                       f"ALTER DATABASE {database_name} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\n" +
-                                       f"DROP DATABASE {database_name};"))
-        case 2:
-            await session.execute(text(f"DROP DATABASE {database_name} WITH (FORCE);"))
-        case 3:
-            await session.execute(text(f"DROP DATABASE {database_name};"))
+    await session.execute(text(db_stuff[dbms_name]['delete_database_query'](database_name)))
     await sqlite_session.execute(delete(AccountDatabase).filter(AccountDatabase.database_id == database_id))
     await sqlite_session.execute(delete(Database).filter(Database.database_id == database_id))

@@ -108,11 +108,10 @@ async def change_account(user_id: int, user_data: EditAccountScheme, sqlite_sess
             User.user_telegram_id == user_data.user_telegram_id).filter(
             Account.account_type_id == account_type_id))
     user_login = user_login.first()[0]
-    edit_user_query = db_stuff[dbms_name]['edit_user_query'](user_login=user_login,
-                                                             new_account_login=user_data.new_account_login,
-                                                             new_account_password=user_data.new_account_password)
-
-    await session.execute(text(edit_user_query))
+    for query in db_stuff[dbms_name]['edit_user_query'](user_login=user_login,
+                                                        new_account_login=user_data.new_account_login,
+                                                        new_account_password=user_data.new_account_password):
+        await session.execute(text(query))
     await sqlite_session.execute(
         update(Account).filter(
             and_(Account.account_user_id == user_id, Account.account_type_id == account_type_id)).values(

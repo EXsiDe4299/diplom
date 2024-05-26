@@ -45,6 +45,7 @@ async def mariadb_db_create(data: DatabaseInteractionScheme,
     if not acceptable_quantity:
         raise HTTPException(400, detail='You have the maximum number of databases')
 
+    # await create_database(data=data, session=autocommit_session)
     try:
         await create_database(data=data, session=autocommit_session)
     except ProgrammingError:
