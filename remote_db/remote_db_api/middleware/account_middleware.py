@@ -9,11 +9,13 @@ from core.models.sqlite_models import User, Account, AccountTypes
 from core.schemas.account import CreateAccountScheme, CreatedAccountScheme, EditAccountScheme
 from core.schemas.database import DatabaseInteractionScheme
 from core.schemas.user import UserScheme
+from middleware.i_will_call_it_later import db_stuff
 
 
 async def get_user_id(user_data: CreateAccountScheme | EditAccountScheme, sqlite_session: AsyncSession):
     user = await sqlite_session.execute(select(User).filter(User.user_telegram_id == user_data.user_telegram_id))
-    user = user.scalars().first()
+    user = user.first()[0]
+    # user = user.scalars().first()
     user_id = user.user_id
     return user_id
 
@@ -21,6 +23,7 @@ async def get_user_id(user_data: CreateAccountScheme | EditAccountScheme, sqlite
 async def get_user_accounts(user_data: UserScheme, sqlite_session: AsyncSession):
     accounts = await sqlite_session.execute(
         select(Account).join(User).filter(User.user_telegram_id == user_data.user_telegram_id))
+    # accounts = await sqlite_session.execute(select(Account).join(Account.users).filter(User.user_telegram_id==user_data.user_telegram_id).options(joinedload(Account.account_types)))
     accounts = accounts.scalars().all()
     return accounts
 
@@ -28,19 +31,15 @@ async def get_user_accounts(user_data: UserScheme, sqlite_session: AsyncSession)
 async def check_account_existing(user_data: CreateAccountScheme | DatabaseInteractionScheme | EditAccountScheme,
                                  sqlite_session: AsyncSession,
                                  dbms_name: str):
-    dbms_to_account_map = {'mssql': 1, 'postgresql': 2, 'mysql': 3}
-    account_type_id = dbms_to_account_map[dbms_name]
-    result = await sqlite_session.execute(select(Account).join(User).filter(
+    account_type_id = db_stuff[dbms_name]['account_type_id']
+    has_account = await sqlite_session.execute(select(Account).join(User).filter(
         and_(User.user_telegram_id == user_data.user_telegram_id,
              Account.account_type_id == account_type_id)))
-    has_account = result.scalar()
+    has_account = has_account.first()
     if has_account:
         return True
     else:
         return False
-
-    # user = user.first()[0]
-    # accounts = await sqlite_session.execute(select(Account).join(Account.users).filter(User.user_telegram_id==user_data.user_telegram_id).options(joinedload(Account.account_types)))
 
 
 async def create_new_account(*, user_id: int, user_data: CreateAccountScheme, sqlite_session: AsyncSession,
@@ -48,22 +47,9 @@ async def create_new_account(*, user_id: int, user_data: CreateAccountScheme, sq
     dbms_name = session.get_bind().name
     alphabet = string.ascii_letters + string.digits
     user_password = ''.join(secrets.choice(alphabet) for _ in range(8))
-    account_type_id = int()
-    create_user_query = str()
-    match dbms_name:
-        case 'mssql':
-            account_type_id = 1
-            create_user_query = ("USE master;\n" +
-                                 f"CREATE LOGIN {user_data.account_login} WITH PASSWORD='{user_password}';\n\n" +
-                                 f"ALTER SERVER ROLE dbcreator ADD MEMBER {user_data.account_login};\n" +
-                                 "USE master;\n" +
-                                 f"GRANT CREATE ANY DATABASE TO {user_data.account_login};")
-        case 'postgresql':
-            account_type_id = 2
-            create_user_query = f"CREATE USER {user_data.account_login} WITH PASSWORD '{user_password}' CREATEDB;"
-        case 'mysql':
-            account_type_id = 3
-            create_user_query = f"CREATE USER '{user_data.account_login}'@localhost IDENTIFIED BY '{user_password}';"
+    account_type_id = db_stuff[dbms_name]['account_type_id']
+    create_user_query = db_stuff[dbms_name]['create_user_query'](account_login=user_data.account_login,
+                                                                 user_password=user_password)
 
     new_account = Account(account_user_id=user_id, account_login=user_data.account_login,
                           account_password=user_password,
@@ -93,64 +79,39 @@ async def create_new_account(*, user_id: int, user_data: CreateAccountScheme, sq
 
 
 async def account_authentication(data: DatabaseInteractionScheme, sqlite_session: AsyncSession, dbms_name: str):
-    account_type_id = int()
-    match dbms_name:
-        case 'mssql':
-            account_type_id = 1
-        case 'postgresql':
-            account_type_id = 2
-        case 'mysql':
-            account_type_id = 3
+    account_type_id = db_stuff[dbms_name]['account_type_id']
 
-    result = await sqlite_session.execute(
+    account = await sqlite_session.execute(
         select(Account).join(User).filter(
             and_(User.user_telegram_id == data.user_telegram_id,
                  Account.account_login == data.account_login,
                  Account.account_password == data.account_password,
                  Account.account_type_id == account_type_id)))
-    account = result.scalar_one_or_none()
-    if not account:
+    account = account.first()
+    if account:
+        account = account[0]
+    else:
         return False
 
     if account.account_login != data.account_login or account.account_password != data.account_password:
         return False
-    return True
+    else:
+        return True
 
 
-async def change_account(user_id, user_data: EditAccountScheme, sqlite_session: AsyncSession, session: AsyncSession):
+async def change_account(user_id: int, user_data: EditAccountScheme, sqlite_session: AsyncSession,
+                         session: AsyncSession):
     dbms_name = session.get_bind().name
-    account_type_id = int()
-    edit_user_query = str()
+    account_type_id: int = db_stuff[dbms_name]['account_type_id']
+    user_login = await sqlite_session.execute(
+        select(Account.account_login).join(User).filter(
+            User.user_telegram_id == user_data.user_telegram_id).filter(
+            Account.account_type_id == account_type_id))
+    user_login = user_login.first()[0]
+    edit_user_query = db_stuff[dbms_name]['edit_user_query'](user_login=user_login,
+                                                             new_account_login=user_data.new_account_login,
+                                                             new_account_password=user_data.new_account_password)
 
-    match dbms_name:
-        case 'mssql':
-            account_type_id = 1
-            user_login = await sqlite_session.execute(
-                select(Account.account_login).join(User).filter(
-                    User.user_telegram_id == user_data.user_telegram_id).filter(
-                    Account.account_type_id == account_type_id))
-            user_login = user_login.first()[0]
-            edit_user_query = (f"ALTER LOGIN {user_login} WITH NAME = {user_data.new_account_login};" +
-                               f"ALTER LOGIN {user_data.new_account_login} WITH PASSWORD = '{user_data.new_account_password}';")
-        case 'postgresql':
-            account_type_id = 2
-            user_login = await sqlite_session.execute(
-                select(Account.account_login).join(User).filter(
-                    User.user_telegram_id == user_data.user_telegram_id).filter(
-                    Account.account_type_id == account_type_id))
-            user_login = user_login.first()[0]
-            edit_user_query = (f"ALTER USER {user_login} RENAME TO {user_data.new_account_login};" +
-                               f"ALTER USER {user_data.new_account_login} WITH PASSWORD '{user_data.new_account_password}';")
-        case 'mysql':
-            account_type_id = 3
-            user_login = await sqlite_session.execute(
-                select(Account.account_login).join(User).filter(
-                    User.user_telegram_id == user_data.user_telegram_id).filter(
-                    Account.account_type_id == account_type_id))
-            user_login = user_login.first()[0]
-            edit_user_query = (
-                    f"ALTER USER '{user_login}'@'localhost' RENAME TO '{user_data.new_account_login}'@'localhost';" +
-                    f"SET PASSWORD FOR '{user_data.new_account_login}'@'localhost' = PASSWORD('{user_data.new_account_password}');")
     await session.execute(text(edit_user_query))
     await sqlite_session.execute(
         update(Account).filter(
