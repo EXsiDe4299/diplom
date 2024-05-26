@@ -18,10 +18,11 @@ async def get_accounts_request(user_telegram_id):
             return response
 
 
-async def create_account_request(url, user_telegram_id, account_login):
+async def create_account_request(url, user_telegram_id, account_login, dbms_name):
     async with ClientSession() as client_session:
         async with client_session.post(url=url,
-                                       json={'user_telegram_id': str(user_telegram_id),
-                                             'account_login': account_login}) as response:
+                                       json={'user_data': {'user_telegram_id': str(user_telegram_id),
+                                                           'account_login': account_login},
+                                             'dbms_name': dbms_name}) as response:
             response = await response.json()
             return response

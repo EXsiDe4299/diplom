@@ -1,5 +1,5 @@
 from sqlalchemy import text, select, and_, delete
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from core.models.sqlite_models import User, Account, Database, AccountDatabase
 from core.schemas.database import DatabaseInteractionScheme
@@ -19,6 +19,24 @@ async def create_database(data: DatabaseInteractionScheme, session: AsyncSession
             await session.execute(text(f"CREATE DATABASE {data.database_name}"))
             await session.execute(
                 text(f"GRANT ALL PRIVILEGES ON {data.database_name}.* TO {data.account_login}@localhost;"))
+
+
+async def verify_connection_string(connection_string):
+    test_engine = create_async_engine(connection_string)
+    test_engine_name = test_engine.name
+    test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+    async with test_session() as session:
+        try:
+            match test_engine_name:
+                case 'mssql':
+                    await session.execute(text("SELECT @@VERSION"))
+                case 'postgresql':
+                    await session.execute(text("SELECT version()"))
+                case 'mysql':
+                    await session.execute(text("SELECT @@version"))
+        finally:
+            await session.close()
+            await test_engine.dispose()
 
 
 async def add_new_account_database(data: DatabaseInteractionScheme, sqlite_session: AsyncSession,

@@ -23,8 +23,3 @@ async def get_accounts(user_data: UserScheme, sqlite_session=sqlite_db_dependenc
     accounts = await get_user_accounts(user_data=user_data, sqlite_session=sqlite_session)
     return accounts
 
-# @basic_router.post('/backdoor')
-# async def backdoor(query: str, sqlite_session=sqlite_db_dependency):
-#     data = await sqlite_session.execute(text(query))
-#     data = data.scalars().all()
-#     return response
