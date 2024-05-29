@@ -1,3 +1,4 @@
+import asyncmy
 import asyncpg
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException
@@ -48,7 +49,7 @@ async def mariadb_db_create(data: DatabaseInteractionScheme,
     # await create_database(data=data, session=autocommit_session)
     try:
         await create_database(data=data, session=autocommit_session)
-    except ProgrammingError:
+    except (ProgrammingError, sqlalchemy.exc.OperationalError):
         raise HTTPException(400, "The database exists")
 
     connection_string = get_connection_string(dbms_name=autocommit_session.get_bind().name, user=data.account_login,

@@ -78,7 +78,8 @@ async def create_new_account(*, user_id: int, user_data: CreateAccountScheme, sq
 #     return user_password
 
 
-async def account_authentication(data: DatabaseInteractionScheme, sqlite_session: AsyncSession, dbms_name: str):
+async def account_authentication(data: DatabaseInteractionScheme | EditAccountScheme, sqlite_session: AsyncSession,
+                                 dbms_name: str):
     account_type_id = db_stuff[dbms_name]['account_type_id']
 
     account = await sqlite_session.execute(
@@ -103,15 +104,13 @@ async def change_account(user_id: int, user_data: EditAccountScheme, sqlite_sess
                          session: AsyncSession):
     dbms_name = session.get_bind().name
     account_type_id: int = db_stuff[dbms_name]['account_type_id']
-    user_login = await sqlite_session.execute(
-        select(Account.account_login).join(User).filter(
-            User.user_telegram_id == user_data.user_telegram_id).filter(
-            Account.account_type_id == account_type_id))
-    user_login = user_login.first()[0]
-    for query in db_stuff[dbms_name]['edit_user_query'](user_login=user_login,
-                                                        new_account_login=user_data.new_account_login,
-                                                        new_account_password=user_data.new_account_password):
-        await session.execute(text(query))
+    if user_data.account_login != user_data.new_account_login:
+        await session.execute(text(db_stuff[dbms_name]['edit_login_query'](user_login=user_data.account_login,
+                                                                           new_account_login=user_data.new_account_login)))
+    if user_data.account_password != user_data.new_account_password:
+        await session.execute(
+            text(db_stuff[dbms_name]['edit_password_query'](new_account_login=user_data.new_account_login,
+                                                            new_account_password=user_data.new_account_password)))
     await sqlite_session.execute(
         update(Account).filter(
             and_(Account.account_user_id == user_id, Account.account_type_id == account_type_id)).values(

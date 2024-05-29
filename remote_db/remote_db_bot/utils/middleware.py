@@ -31,9 +31,10 @@ async def get_dbms_buttons(existing_accounts):
 
 
 async def get_dbms_id_by_name(dbms_name):
-    for key, value in user_dbms_dict.items():
-        if value == dbms_name:
-            return key
+    return next((key for key, value in user_dbms_dict.items() if value == dbms_name))
+    # for key, value in user_dbms_dict.items():
+    #     if value == dbms_name:
+    #         return key
 
 # async def get_create_account_url(dbms_id):
 #     url_dict = {1: mssql_account_create_url, 2: pg_account_create_url, 3: mariadb_account_create_url}

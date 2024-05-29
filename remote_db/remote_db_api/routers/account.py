@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from core.database.sqlite_database import get_sqlite_session
 from core.database.utils import get_session
 from core.schemas.account import CreatedAccountScheme, CreateAccountScheme, EditAccountScheme
-from middleware.account_middleware import get_user_id, check_account_existing, create_new_account, change_account
+from middleware.account_middleware import get_user_id, check_account_existing, create_new_account, change_account, \
+    account_authentication
 from middleware.user_middleware import check_user_existing
 
 account_router = APIRouter()
@@ -58,6 +59,11 @@ async def edit_account(account_data: EditAccountScheme, sqlite_session=sqlite_db
 
     if not account_exists:
         raise HTTPException(400, detail="You don't have an account")
+
+    successful_authentication = await account_authentication(data=account_data, sqlite_session=sqlite_session,
+                                                             dbms_name=session.get_bind().name)
+    if not successful_authentication:
+        raise HTTPException(401, detail="Incorrect login or password")
 
     edited_account = await change_account(user_id=user_id, user_data=account_data, sqlite_session=sqlite_session,
                                           session=session)
