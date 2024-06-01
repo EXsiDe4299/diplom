@@ -1,6 +1,7 @@
 from aiohttp import ClientSession
 
-from common.api_urls import registration_url, get_accounts_url, account_create_url, account_edit_url
+from common.api_urls import registration_url, get_accounts_url, account_create_url, account_edit_url, \
+    get_accounts_databases_url, create_database_url
 
 
 async def register_user_request(user_telegram_id):
@@ -40,5 +41,29 @@ async def edit_account_request(user_telegram_id, account_login, account_password
                                            "new_account_password": new_account_password
                                        },
                                            "dbms_name": dbms_name}) as response:
+            response = await response.json()
+            return response
+
+
+async def get_accounts_databases_request(user_telegram_id):
+    async with ClientSession() as client_session:
+        async with client_session.post(url=get_accounts_databases_url,
+                                       json={"user_telegram_id": user_telegram_id}) as response:
+            response = await response.json()
+            return response
+
+
+async def create_database_request(database_name, user_telegram_id, account_login, account_password, dbms_name):
+    async with ClientSession() as client_session:
+        async with client_session.post(url=create_database_url,
+                                       json={
+                                           "data": {
+                                               "database_name": database_name,
+                                               "user_telegram_id": str(user_telegram_id),
+                                               "account_login": account_login,
+                                               "account_password": account_password
+                                           },
+                                           "dbms_name": dbms_name
+                                       }) as response:
             response = await response.json()
             return response

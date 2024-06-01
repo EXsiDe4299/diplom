@@ -1,8 +1,10 @@
 from sqlalchemy import text, select, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import joinedload
 
 from core.models.sqlite_models import User, Account, Database, AccountDatabase
 from core.schemas.database import DatabaseInteractionScheme
+from core.schemas.user import UserScheme
 from middleware.i_will_call_it_later import db_stuff
 
 
@@ -74,3 +76,35 @@ async def delete_database(data: DatabaseInteractionScheme, sqlite_session: Async
     await session.execute(text(db_stuff[dbms_name]['delete_database_query'](database_name)))
     await sqlite_session.execute(delete(AccountDatabase).filter(AccountDatabase.database_id == database_id))
     await sqlite_session.execute(delete(Database).filter(Database.database_id == database_id))
+
+
+# async def qwer(user_data:UserScheme, sqlite_session: AsyncSession):
+#     user_accounts = await sqlite_session.execute(
+#         select(Database).join(AccountDatabase, Database.database_id == AccountDatabase.database_id)
+#         .join(Account, AccountDatabase.account_id == Account.account_id)
+#         .join(User, Account.account_user_id == User.user_id)
+#         .filter(User.user_telegram_id == user_data.user_telegram_id))
+#     user_accounts = user_accounts.scalars().all()
+#
+#     return user_accounts
+
+async def get_user_databases(user_data: UserScheme, sqlite_session: AsyncSession):
+    user = await sqlite_session.execute(select(User).filter(User.user_telegram_id == user_data.user_telegram_id))
+    user = user.scalar()
+    accounts_databases = await sqlite_session.execute(select(AccountDatabase).join(Account).filter(Account.account_user_id == user.user_id))
+    accounts_databases = accounts_databases.scalars()
+    databases_info_lst = []
+    for account_database in accounts_databases:
+        database = await sqlite_session.execute(select(Database).filter(Database.database_id == account_database.database_id))
+        account = await sqlite_session.execute(select(Account).filter(Account.account_id == account_database.account_id))
+        database = database.scalar()
+        account = account.scalar()
+        database_info = {
+            "database_type_id": database.database_type_id,
+            "database_name": database.database_name,
+            "database_id": database.database_id,
+            "account_login": account.account_login,
+            "account_password": account.account_password
+        }
+        databases_info_lst.append(database_info)
+    return databases_info_lst

@@ -20,7 +20,7 @@ autocommit_db_dependency = Depends(get_autocommit_session)
 
 
 @database_router.post('/create', status_code=201)
-async def mariadb_db_create(data: DatabaseInteractionScheme,
+async def db_create(data: DatabaseInteractionScheme,
                             autocommit_session=autocommit_db_dependency,
                             sqlite_session=sqlite_db_dependency):
     if not autocommit_session:
@@ -62,7 +62,7 @@ async def mariadb_db_create(data: DatabaseInteractionScheme,
 
 
 @database_router.delete('/delete')
-async def mariadb_db_delete(data: DatabaseInteractionScheme,
+async def db_delete(data: DatabaseInteractionScheme,
                             autocommit_session=autocommit_db_dependency,
                             sqlite_session=sqlite_db_dependency):
     if not autocommit_session:
@@ -91,7 +91,7 @@ async def mariadb_db_delete(data: DatabaseInteractionScheme,
 
 
 @database_router.post('/get-connection-string')
-async def mariadb_db_get_conn_str(data: DatabaseInteractionScheme, sqlite_session=sqlite_db_dependency,
+async def db_get_conn_str(data: DatabaseInteractionScheme, sqlite_session=sqlite_db_dependency,
                                   session=db_dependency):
     if not session:
         raise HTTPException(400, detail='Incorrect dbms name')
@@ -120,3 +120,4 @@ async def mariadb_db_get_conn_str(data: DatabaseInteractionScheme, sqlite_sessio
     except (sqlalchemy.exc.InterfaceError, asyncpg.exceptions.ConnectionDoesNotExistError,
             sqlalchemy.exc.OperationalError):
         raise HTTPException(404, detail="Incorrect database name")
+

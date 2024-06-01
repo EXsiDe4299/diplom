@@ -11,12 +11,15 @@ async def get_session(dbms_name: str = Body(...)) -> AsyncGenerator[AsyncSession
         case 'mssql':
             async with mssql_async_session() as mssql_session:
                 yield mssql_session
+                await mssql_session.close()
         case 'postgresql':
             async with postgres_async_session() as postgres_session:
                 yield postgres_session
+                await postgres_session.close()
         case 'mariadb' | 'mysql':
             async with mariadb_async_session() as mariadb_session:
                 yield mariadb_session
+                await mariadb_session.close()
         case _:
             yield
 
@@ -26,11 +29,14 @@ async def get_autocommit_session(dbms_name: str = Body(...)) -> AsyncGenerator[A
         case 'mssql':
             async with autocommit_mssql_async_session() as autocommit_mssql_session:
                 yield autocommit_mssql_session
+                await autocommit_mssql_session.close()
         case 'postgresql':
             async with autocommit_postgres_async_session() as autocommit_postgres_session:
                 yield autocommit_postgres_session
+                await autocommit_postgres_session.close()
         case 'mariadb' | 'mysql':
             async with autocommit_mariadb_async_session() as autocommit_mariadb_session:
                 yield autocommit_mariadb_session
+                await autocommit_mariadb_session.close()
         case _:
             yield
