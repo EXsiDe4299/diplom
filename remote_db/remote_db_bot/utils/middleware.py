@@ -1,4 +1,3 @@
-from common.api_urls import account_create_url
 from common.something import user_dbms_dict
 
 
@@ -23,7 +22,7 @@ def format_databases_response(accounts_databases):
     if len(accounts_databases) < 9:
         buttons.append('🔐 Создать')
     if len(accounts_databases) > 0:
-        buttons.append('🔄 Редактировать')
+        buttons.append('❌ Удалить')
 
     for account_database in accounts_databases:
         dbms_name = user_dbms_dict[account_database["database_type_id"]]
@@ -51,10 +50,3 @@ def get_dbms_buttons(existing_accounts):
 
 def get_dbms_id_by_name(dbms_name):
     return next((key for key, value in user_dbms_dict.items() if value == dbms_name))
-    # for key, value in user_dbms_dict.items():
-    #     if value == dbms_name:
-    #         return key
-
-# async def get_create_account_url(dbms_id):
-#     url_dict = {1: mssql_account_create_url, 2: pg_account_create_url, 3: mariadb_account_create_url}
-#     return url_dict[dbms_id]

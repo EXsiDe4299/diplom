@@ -14,7 +14,7 @@ basic_router = APIRouter()
 sqlite_db_dependency: AsyncSession = Depends(get_sqlite_session)
 
 
-@basic_router.post('/registration')
+@basic_router.post('/registration', status_code=204)
 async def registration(user_data: UserScheme, sqlite_session=sqlite_db_dependency):
     await register_user(user_data=user_data, sqlite_session=sqlite_session)
     await sqlite_session.commit()

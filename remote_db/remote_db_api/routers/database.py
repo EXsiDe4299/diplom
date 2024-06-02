@@ -1,4 +1,3 @@
-import asyncmy
 import asyncpg
 import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,8 +20,8 @@ autocommit_db_dependency = Depends(get_autocommit_session)
 
 @database_router.post('/create', status_code=201)
 async def db_create(data: DatabaseInteractionScheme,
-                            autocommit_session=autocommit_db_dependency,
-                            sqlite_session=sqlite_db_dependency):
+                    autocommit_session=autocommit_db_dependency,
+                    sqlite_session=sqlite_db_dependency):
     if not autocommit_session:
         raise HTTPException(400, detail='Incorrect dbms name')
 
@@ -46,7 +45,6 @@ async def db_create(data: DatabaseInteractionScheme,
     if not acceptable_quantity:
         raise HTTPException(400, detail='You have the maximum number of databases')
 
-    # await create_database(data=data, session=autocommit_session)
     try:
         await create_database(data=data, session=autocommit_session)
     except (ProgrammingError, sqlalchemy.exc.OperationalError):
@@ -63,8 +61,8 @@ async def db_create(data: DatabaseInteractionScheme,
 
 @database_router.delete('/delete')
 async def db_delete(data: DatabaseInteractionScheme,
-                            autocommit_session=autocommit_db_dependency,
-                            sqlite_session=sqlite_db_dependency):
+                    autocommit_session=autocommit_db_dependency,
+                    sqlite_session=sqlite_db_dependency):
     if not autocommit_session:
         raise HTTPException(400, detail='Incorrect dbms name')
 
@@ -92,7 +90,7 @@ async def db_delete(data: DatabaseInteractionScheme,
 
 @database_router.post('/get-connection-string')
 async def db_get_conn_str(data: DatabaseInteractionScheme, sqlite_session=sqlite_db_dependency,
-                                  session=db_dependency):
+                          session=db_dependency):
     if not session:
         raise HTTPException(400, detail='Incorrect dbms name')
     user_exists = await check_user_existing(user_data=data, sqlite_session=sqlite_session)
@@ -120,4 +118,3 @@ async def db_get_conn_str(data: DatabaseInteractionScheme, sqlite_session=sqlite
     except (sqlalchemy.exc.InterfaceError, asyncpg.exceptions.ConnectionDoesNotExistError,
             sqlalchemy.exc.OperationalError):
         raise HTTPException(404, detail="Incorrect database name")
-

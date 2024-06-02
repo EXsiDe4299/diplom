@@ -34,12 +34,6 @@ async def create_account(user_data: CreateAccountScheme, sqlite_session=sqlite_d
     await sqlite_session.commit()
     await session.commit()
 
-    # async with aiohttp.ClientSession() as http_session:
-    #     async with http_session.post('http://25.64.51.236:5132/createDbUser',
-    #                                  json={'user_login': new_user.user_login, 'user_password': new_user.user_password,
-    #                                        'telegram_id': user_data.user_telegram_id,
-    #                                        'db_type': 'mariadb'}, headers={'content-type': 'application/json'}):
-    #         pass
 
     return new_user
 
@@ -71,16 +65,3 @@ async def edit_account(account_data: EditAccountScheme, sqlite_session=sqlite_db
     await session.commit()
     return edited_account
 
-# @account_router.post('/account/remind-password')
-# async def mssql_remind_password(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency):
-#     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
-#     if not user_exists:
-#         raise HTTPException(400, detail="Unknown user")
-#
-#     account_exists = await check_account_existing(user_data=user_data, sqlite_session=sqlite_session,
-#                                                   dbms_name="mysql")
-#     if not account_exists:
-#         raise HTTPException(400, detail="You don't have an account in this DBMS")
-#
-#     user_password = await remind_password(user_data=user_data, sqlite_session=sqlite_session, dbms_name='mysql')
-#     return user_password

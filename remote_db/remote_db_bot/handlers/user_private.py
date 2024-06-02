@@ -3,14 +3,13 @@ from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
-from common.api_urls import account_create_url
 from common.something import user_dbms_dict, main_menu_buttons, api_dbms_dict
 from common.texts import main_menu_text, choose_dbms_text, invent_login_text, choose_dbms_text2, invent_password_text, \
-    choose_dbms_text3, invent_db_name_text, choose_dbms_text4, input_db_name_text
+    choose_dbms_text3, invent_db_name_text, choose_dbms_text4, input_db_name_text, confirmation_of_deletion_text
 from filters.chat_types import ChatTypeFilter
 from keyboards.reply import create_reply_buttons
 from utils.api_requests import register_user_request, get_accounts_request, create_account_request, \
-    edit_account_request, get_accounts_databases_request, create_database_request
+    edit_account_request, get_accounts_databases_request, create_database_request, delete_database_request
 from utils.middleware import format_accounts_response, remove_excess_dbms_buttons, get_dbms_id_by_name, \
     get_dbms_buttons, format_databases_response
 
@@ -36,12 +35,13 @@ class AddDatabaseStates(StatesGroup):
     input_db_name = State()
 
 
-class EditDatabaseStates(StatesGroup):
+class DeleteDatabaseStates(StatesGroup):
     choice_dbms = State()
     input_db_name = State()
-    input_new_db_name = State()
+    confirmation_of_deletion = State()
 
 
+@user_private_router.message(StateFilter(DeleteDatabaseStates.confirmation_of_deletion), F.text == '✅ Нет')
 @user_private_router.message(StateFilter('*'), CommandStart())
 @user_private_router.message(StateFilter('*'), F.text == '📚 Главное меню')
 async def main_menu(message: types.Message, state: FSMContext):
@@ -212,8 +212,8 @@ async def create_database(message: types.Message, state: FSMContext):
         await message.answer('Сначала создай аккаунт', reply_markup=create_reply_buttons('📚 Главное меню'))
 
 
-@user_private_router.message(StateFilter(AddDatabaseStates.check_databases), F.text == '🔄 Редактировать')
-async def edit_db_btn_click(message: types.Message, state: FSMContext):
+@user_private_router.message(StateFilter(AddDatabaseStates.check_databases), F.text == '❌ Удалить')
+async def asdf(message: types.Message, state: FSMContext):
     data = await state.get_data()
     accounts_databases = data['accounts_databases']
     buttons = []
@@ -222,44 +222,55 @@ async def edit_db_btn_click(message: types.Message, state: FSMContext):
             buttons.append(user_dbms_dict[account_database['database_type_id']])
     # buttons = {user_dbms_dict[i['database_type_id']] for i in accounts_databases}
     await message.answer(choose_dbms_text4, reply_markup=create_reply_buttons(*buttons, "📚 Главное меню"))
-    await state.set_state(EditDatabaseStates.choice_dbms)
+    await state.set_state(DeleteDatabaseStates.choice_dbms)
 
 
-@user_private_router.message(StateFilter(EditDatabaseStates.choice_dbms),
+@user_private_router.message(StateFilter(DeleteDatabaseStates.choice_dbms),
                              lambda message: message.text in user_dbms_dict.values())
 async def input_existing_db_name(message: types.Message, state: FSMContext):
     dbms_id = get_dbms_id_by_name(message.text)
     await state.update_data(dbms_id=dbms_id)
     await message.answer(input_db_name_text, reply_markup=create_reply_buttons('📚 Главное меню'))
-    await state.set_state(EditDatabaseStates.input_db_name)
+    await state.set_state(DeleteDatabaseStates.input_db_name)
 
 
-@user_private_router.message(StateFilter(EditDatabaseStates.input_db_name))
-async def input_new_db_name(message: types.Message, state: FSMContext):
+@user_private_router.message(StateFilter(DeleteDatabaseStates.input_db_name))
+async def confirm_deletion(message: types.Message, state: FSMContext):
     data = await state.get_data()
     dbms_id = data['dbms_id']
     accounts_databases = data['accounts_databases']
-    old_db_name = next(
+    db_name = next(
         (account_database['database_name'] for account_database in accounts_databases if
          account_database['database_name'] == message.text and account_database['database_type_id'] == dbms_id), None)
+    account_login = next(
+        (account_database['account_login'] for account_database in accounts_databases if
+         account_database['database_name'] == message.text and account_database['database_type_id'] == dbms_id), None)
+    account_password = next(
+        (account_database['account_password'] for account_database in accounts_databases if
+         account_database['database_name'] == message.text and account_database['database_type_id'] == dbms_id), None)
 
-    if old_db_name:
-        await state.update_data(old_db_name=old_db_name)
+    if db_name:
+        await state.update_data(database_name=db_name)
+        await state.update_data(account_login=account_login)
+        await state.update_data(account_password=account_password)
 
-        await message.answer(invent_db_name_text,
-                             reply_markup=create_reply_buttons('📚 Главное меню'))
-        await state.set_state(EditDatabaseStates.input_new_db_name)
+        await message.answer(confirmation_of_deletion_text,
+                             reply_markup=create_reply_buttons('✅ Да', '🚫 Нет'))
+        await state.set_state(DeleteDatabaseStates.confirmation_of_deletion)
     else:
-        await message.answer('Такой базы данных не существует',
+        await message.answer('гав 🐶\n\nТакой базы данных не существует',
                              reply_markup=create_reply_buttons('📚 Главное меню'))
 
 
-@user_private_router.message(StateFilter(EditDatabaseStates.input_new_db_name))
-async def edit_database(message: types.Message, state: FSMContext):
-    await message.answer('база данных изменена (не изменена)')
-
-
-@user_private_router.message(StateFilter(AddDatabaseStates.check_databases), F.text == '❌ Удалить')
-async def asdf(message: types.Message, state: FSMContext):
-    await message.answer('Ты в редактировании', reply_markup=create_reply_buttons("📚 Главное меню"))
-    await state.set_state(EditDatabaseStates.choice_dbms)
+@user_private_router.message(StateFilter(DeleteDatabaseStates.confirmation_of_deletion), F.text == '✅ Да')
+async def delete_db(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    dbms_id = data['dbms_id']
+    dbms_name = api_dbms_dict[dbms_id]
+    database_name = data['database_name']
+    account_login = data['account_login']
+    account_password = data['account_password']
+    await delete_database_request(database_name=database_name, user_telegram_id=message.from_user.id,
+                                  account_login=account_login, account_password=account_password, dbms_name=dbms_name)
+    await message.answer('гав 🐶\n\nБаза данных успешно удалена',
+                         reply_markup=create_reply_buttons('📚 Главное меню'))

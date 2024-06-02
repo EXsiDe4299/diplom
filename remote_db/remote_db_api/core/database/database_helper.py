@@ -13,5 +13,3 @@ def get_connection_string(dbms_name: str, user: str | None = None, password: str
         case 'mariadb' | 'mysql':
             connection_string = f"mysql+asyncmy://{user}:{password}@{MARIADB_DB_HOST}:{MARIADB_DB_PORT}/{db_name}"
             return connection_string
-        # case _:
-        #     return

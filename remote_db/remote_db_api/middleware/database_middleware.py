@@ -1,6 +1,5 @@
 from sqlalchemy import text, select, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import joinedload
 
 from core.models.sqlite_models import User, Account, Database, AccountDatabase
 from core.schemas.database import DatabaseInteractionScheme
@@ -78,15 +77,6 @@ async def delete_database(data: DatabaseInteractionScheme, sqlite_session: Async
     await sqlite_session.execute(delete(Database).filter(Database.database_id == database_id))
 
 
-# async def qwer(user_data:UserScheme, sqlite_session: AsyncSession):
-#     user_accounts = await sqlite_session.execute(
-#         select(Database).join(AccountDatabase, Database.database_id == AccountDatabase.database_id)
-#         .join(Account, AccountDatabase.account_id == Account.account_id)
-#         .join(User, Account.account_user_id == User.user_id)
-#         .filter(User.user_telegram_id == user_data.user_telegram_id))
-#     user_accounts = user_accounts.scalars().all()
-#
-#     return user_accounts
 
 async def get_user_databases(user_data: UserScheme, sqlite_session: AsyncSession):
     user = await sqlite_session.execute(select(User).filter(User.user_telegram_id == user_data.user_telegram_id))

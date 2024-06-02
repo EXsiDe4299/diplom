@@ -1,15 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
-from starlette.requests import Request
 
 from routers.account import account_router
 from routers.basic import basic_router
 from routers.database import database_router
-
-# from routers.mariadb import mariadb_router
-# from routers.mssql import mssql_router
-# from routers.postgresql import postgresql_router
-
 
 # TODO: оптимизировать sql-запросы, убрать повторы кода проверок в эндпоинтах
 
@@ -19,9 +13,6 @@ from routers.database import database_router
 
 app = FastAPI()
 
-# app.include_router(mssql_router, prefix='/mssql', tags=['mssql'])
-# app.include_router(postgresql_router, prefix='/postgresql', tags=['postgresql'])
-# app.include_router(mariadb_router, prefix='/mariadb', tags=['mariadb'])
 app.include_router(account_router, prefix='/account', tags=['account'])
 app.include_router(database_router, prefix='/database', tags=['database'])
 app.include_router(basic_router, tags=['basic'])

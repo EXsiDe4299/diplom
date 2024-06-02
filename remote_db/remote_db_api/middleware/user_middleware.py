@@ -15,8 +15,9 @@ async def register_user(user_data: UserScheme, sqlite_session: AsyncSession):
         sqlite_session.add(new_user)
 
 
-async def check_user_existing(user_data: UserScheme | CreateAccountScheme | DatabaseInteractionScheme|EditAccountScheme,
-                              sqlite_session: AsyncSession):
+async def check_user_existing(
+        user_data: UserScheme | CreateAccountScheme | DatabaseInteractionScheme | EditAccountScheme,
+        sqlite_session: AsyncSession):
     user = await sqlite_session.execute(select(User).filter(User.user_telegram_id == user_data.user_telegram_id))
     user = user.first()
     if user:

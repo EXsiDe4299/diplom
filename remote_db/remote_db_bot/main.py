@@ -11,7 +11,6 @@ from handlers.user_private import user_private_router
 
 load_dotenv()
 
-# ALLOWED_UPDATES = ['message', 'callback_query']
 
 dp = Dispatcher()
 bot = Bot(token=getenv("TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
