@@ -1,19 +1,15 @@
 import asyncio
 import logging
-from os import getenv
 
+from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher
 
+from common.config import TOKEN
 from handlers.user_private import user_private_router
 
-load_dotenv()
-
-
 dp = Dispatcher()
-bot = Bot(token=getenv("TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 dp.include_router(user_private_router)
 

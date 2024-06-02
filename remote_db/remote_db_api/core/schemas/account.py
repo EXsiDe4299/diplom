@@ -17,4 +17,3 @@ class EditAccountScheme(BaseModel):
     account_password: str
     new_account_login: str
     new_account_password: str
-

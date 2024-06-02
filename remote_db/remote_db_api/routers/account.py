@@ -16,10 +16,10 @@ db_dependency = Depends(get_session)
 async def create_account(user_data: CreateAccountScheme, sqlite_session=sqlite_db_dependency,
                          session=db_dependency):
     if not session:
-        raise HTTPException(400, detail='Incorrect dbms name')
+        raise HTTPException(500, detail='Incorrect dbms name')
     user_exists = await check_user_existing(user_data=user_data, sqlite_session=sqlite_session)
     if not user_exists:
-        raise HTTPException(400, detail="Unknown user")
+        raise HTTPException(404, detail="Unknown user")
 
     user_id = await get_user_id(user_data=user_data, sqlite_session=sqlite_session)
 
@@ -27,24 +27,22 @@ async def create_account(user_data: CreateAccountScheme, sqlite_session=sqlite_d
                                                   dbms_name=session.get_bind().name)
 
     if account_exists:
-        raise HTTPException(400, detail="You already have an account")
+        raise HTTPException(409, detail="You already have an account")
 
     new_user = await create_new_account(user_id=user_id, user_data=user_data, sqlite_session=sqlite_session,
                                         session=session)
     await sqlite_session.commit()
     await session.commit()
-
-
     return new_user
 
 
 @account_router.post('/edit')
 async def edit_account(account_data: EditAccountScheme, sqlite_session=sqlite_db_dependency, session=db_dependency):
     if not session:
-        raise HTTPException(400, detail='Incorrect dbms name')
+        raise HTTPException(500, detail='Incorrect dbms name')
     user_exists = await check_user_existing(user_data=account_data, sqlite_session=sqlite_session)
     if not user_exists:
-        raise HTTPException(400, detail="Unknown user")
+        raise HTTPException(404, detail="Unknown user")
 
     user_id = await get_user_id(user_data=account_data, sqlite_session=sqlite_session)
 
@@ -52,7 +50,7 @@ async def edit_account(account_data: EditAccountScheme, sqlite_session=sqlite_db
                                                   dbms_name=session.get_bind().name)
 
     if not account_exists:
-        raise HTTPException(400, detail="You don't have an account")
+        raise HTTPException(404, detail="You don't have an account")
 
     successful_authentication = await account_authentication(data=account_data, sqlite_session=sqlite_session,
                                                              dbms_name=session.get_bind().name)
@@ -64,4 +62,3 @@ async def edit_account(account_data: EditAccountScheme, sqlite_session=sqlite_db
     await sqlite_session.commit()
     await session.commit()
     return edited_account
-

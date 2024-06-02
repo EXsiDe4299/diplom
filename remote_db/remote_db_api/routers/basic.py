@@ -6,7 +6,7 @@ from core.database.sqlite_database import get_sqlite_session
 from core.schemas.user import UserScheme
 from middleware.account_middleware import get_user_accounts
 from middleware.database_middleware import get_user_databases
-from middleware.i_will_call_it_later import db_stuff
+from middleware.db_toolkit import db_toolkit_data
 from middleware.user_middleware import register_user
 
 basic_router = APIRouter()
@@ -31,7 +31,7 @@ async def get_accounts_databases(data: UserScheme, sqlite_session=sqlite_db_depe
     user_databases = await get_user_databases(user_data=data, sqlite_session=sqlite_session)
     dbms_name = str()
     for user_database in user_databases:
-        for key, value in db_stuff.items():
+        for key, value in db_toolkit_data.items():
             if value['database_type_id'] == user_database['database_type_id']:
                 dbms_name = key
                 break

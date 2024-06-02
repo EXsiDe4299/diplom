@@ -15,8 +15,9 @@ async def get_accounts_request(user_telegram_id):
     async with ClientSession() as client_session:
         async with client_session.post(url=get_accounts_url,
                                        json={'user_telegram_id': str(user_telegram_id)}) as response:
+            status_code = response.status
             response = await response.json()
-            return response
+            return response, status_code
 
 
 async def create_account_request(user_telegram_id, account_login, dbms_name):
@@ -25,8 +26,9 @@ async def create_account_request(user_telegram_id, account_login, dbms_name):
                                        json={'user_data': {'user_telegram_id': str(user_telegram_id),
                                                            'account_login': account_login},
                                              'dbms_name': dbms_name}) as response:
+            status_code = response.status
             response = await response.json()
-            return response
+            return response, status_code
 
 
 async def edit_account_request(user_telegram_id, account_login, account_password, new_account_login,
@@ -41,16 +43,18 @@ async def edit_account_request(user_telegram_id, account_login, account_password
                                            "new_account_password": new_account_password
                                        },
                                            "dbms_name": dbms_name}) as response:
+            status_code = response.status
             response = await response.json()
-            return response
+            return response, status_code
 
 
 async def get_accounts_databases_request(user_telegram_id):
     async with ClientSession() as client_session:
         async with client_session.post(url=get_accounts_databases_url,
                                        json={"user_telegram_id": user_telegram_id}) as response:
+            status_code = response.status
             response = await response.json()
-            return response
+            return response, status_code
 
 
 async def create_database_request(database_name, user_telegram_id, account_login, account_password, dbms_name):
@@ -65,8 +69,9 @@ async def create_database_request(database_name, user_telegram_id, account_login
                                            },
                                            "dbms_name": dbms_name
                                        }) as response:
+            status_code = response.status
             response = await response.json()
-            return response
+            return response, status_code
 
 
 async def delete_database_request(database_name, user_telegram_id, account_login, account_password, dbms_name):
@@ -81,5 +86,6 @@ async def delete_database_request(database_name, user_telegram_id, account_login
                                              },
                                              "dbms_name": dbms_name
                                          }) as response:
+            status_code = response.status
             response = await response.json()
-            return response
+            return response, status_code

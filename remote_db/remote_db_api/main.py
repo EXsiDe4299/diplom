@@ -5,12 +5,6 @@ from routers.account import account_router
 from routers.basic import basic_router
 from routers.database import database_router
 
-# TODO: оптимизировать sql-запросы, убрать повторы кода проверок в эндпоинтах
-
-# TODO: *сделать нормальный нейминг
-
-# TODO: *сделать JWT-Auth
-
 app = FastAPI()
 
 app.include_router(account_router, prefix='/account', tags=['account'])
