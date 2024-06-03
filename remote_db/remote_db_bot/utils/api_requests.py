@@ -1,7 +1,7 @@
 from aiohttp import ClientSession
 
 from common.api_urls import registration_url, get_accounts_url, account_create_url, account_edit_url, \
-    get_accounts_databases_url, create_database_url, delete_database_url
+    get_accounts_databases_url, create_database_url, delete_database_url, createdbuser_url
 
 
 async def register_user_request(user_telegram_id):
@@ -89,3 +89,14 @@ async def delete_database_request(database_name, user_telegram_id, account_login
             status_code = response.status
             response = await response.json()
             return response, status_code
+
+
+async def createdbuser_request(user_login, user_password, telegram_id, db_type):
+    async with ClientSession() as client_session:
+        async with client_session.post(url=createdbuser_url, json={
+            'user_login': user_login,
+            'user_password': user_password,
+            'telegram_id': str(telegram_id),
+            'db_type': db_type
+        }):
+            pass

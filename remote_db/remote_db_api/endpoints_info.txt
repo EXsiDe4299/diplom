@@ -1,0 +1,144 @@
+http://25.64.54.15:8000/registration
+принимает:
+{
+  "user_telegram_id": "6719640097"
+}
+возвращает:
+null
+
+============================================================
+
+http://25.64.54.15:8000/get-accounts
+принимает:
+{
+  "user_telegram_id": "6719640097"
+}
+возвращает:
+[
+	{
+		"account_id": 1,
+		"account_password": "1",
+		"account_login": "test_login",
+		"account_user_id": 1,
+		"account_type_id": 1
+	},
+	{
+		"account_id": 2,
+		"account_password": "1",
+		"account_login": "test_login",
+		"account_user_id": 1,
+		"account_type_id": 2
+	}
+]
+
+============================================================
+
+http://25.64.54.15:8000/account/edit
+принимает:
+{
+  "account_data": {
+    "user_telegram_id": "6719640097",
+    "account_login": "account_login",
+    "account_password":"fOHMbzeD",
+    "new_account_login": "test_login",
+    "new_account_password": "1"
+  },
+  "dbms_name": "postgresql"
+}
+возвращает:
+{
+	"account_login": "test_login",
+	"account_password": "1"
+}
+
+============================================================
+
+http://25.64.54.15:8000/account/create
+принимает:
+{
+  "user_data": {
+    "user_telegram_id": "6719640097",
+    "account_login": "test_login"
+  },
+  "dbms_name": "postgresql"
+}
+возвращает:
+{
+	"account_login": "test_login",
+	"account_password": "fOHMbzeD"
+}
+
+============================================================
+
+http://25.64.54.15:8000/database/create
+принимает:
+{
+  "data": {
+    "database_name": "test_databasef_first",
+    "user_telegram_id": "6719640097",
+    "account_login": "test_mariadb_login",
+    "account_password": "1"
+  },
+  "dbms_name": "mariadb"
+}
+возвращает:
+"mysql+asyncmy://test_mariadb_login:1@localhost:3306/test_databasef_first"
+
+============================================================
+
+http://25.64.54.15:8000/database/delete
+принимает:
+{
+  "data": {
+    "database_name": "test_databasef_first",
+    "user_telegram_id": "6719640097",
+    "account_login": "test_mariadb_login",
+    "account_password": "1"
+  },
+  "dbms_name": "mariadb"
+}
+возвращает:
+null
+
+============================================================
+
+http://25.64.54.15:8000/database/get-connection-string
+принимает:
+{
+  "data": {
+    "database_name": "test_databasef_first",
+    "user_telegram_id": "6719640097",
+    "account_login": "test_mariadb_login",
+    "account_password": "1"
+  },
+  "dbms_name": "mariadb"
+}
+возвращает:
+"mysql+asyncmy://test_mariadb_login:1@localhost:3306/test_databasef_first"
+
+============================================================
+
+http://25.64.54.15:8000/get-accounts-databases
+принимает:
+{
+  "user_telegram_id": "6719640097"
+}
+возвращает:
+[
+	{
+		"database_type_id": 1,
+		"database_name": "test_database",
+		"database_id": 2,
+		"account_login": "brbrbrrbbrbrbr",
+		"account_password": "QzOG4iaF",
+		"connection_string": "mssql+aioodbc://brbrbrrbbrbrbr:QzOG4iaF@computer/test_database?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
+	},
+	{
+		"database_type_id": 1,
+		"database_name": "test_database_second",
+		"database_id": 3,
+		"account_login": "brbrbrrbbrbrbr",
+		"account_password": "QzOG4iaF",
+		"connection_string": "mssql+aioodbc://brbrbrrbbrbrbr:QzOG4iaF@computer/test_database_second?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
+	}
+]

@@ -16,7 +16,8 @@ from common.texts import main_menu_text, choose_dbms_text, invent_login_text, ch
 from filters.chat_types import ChatTypeFilter
 from keyboards.reply import create_reply_buttons
 from utils.api_requests import register_user_request, get_accounts_request, create_account_request, \
-    edit_account_request, get_accounts_databases_request, create_database_request, delete_database_request
+    edit_account_request, get_accounts_databases_request, create_database_request, delete_database_request, \
+    createdbuser_request
 from utils.middleware import format_accounts_response, remove_excess_dbms_buttons, get_dbms_id_by_name, \
     get_dbms_buttons, format_databases_response, checking_text_correctness, checking_password_correctness
 
@@ -93,8 +94,13 @@ async def create_account(message: types.Message, state: FSMContext):
         response, status_code = await create_account_request(user_telegram_id=message.from_user.id,
                                                              account_login=message.text,
                                                              dbms_name=api_dbms_dict[dbms_id])
+
         match status_code:
             case 201:
+                await createdbuser_request(user_login=response['account_login'],
+                                           user_password=response['account_password'], telegram_id=message.from_user.id,
+                                           db_type=api_dbms_dict[dbms_id])
+
                 await message.answer(
                     account_created_text(response),
                     reply_markup=create_reply_buttons(main_menu_button))
