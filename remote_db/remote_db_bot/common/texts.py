@@ -22,7 +22,7 @@ db_doesnt_exists_text = '❗ Базы данных с таким названи�
 
 
 def account_created_text(response):
-    return f'✅ Аккаунт успешно создан.\n\nЛогин: {response['account_login']}\nПароль: {response['account_password']}'
+    return f'✅ Аккаунт успешно создан.\n\nЛогин: {response["account_login"]}\nПароль: {response['account_password']}'
 
 
 def account_edited_text(response):
