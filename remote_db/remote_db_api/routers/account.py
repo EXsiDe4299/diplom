@@ -36,7 +36,7 @@ async def create_account(user_data: CreateAccountScheme, sqlite_session=sqlite_d
     return new_user
 
 
-@account_router.post('/edit')
+@account_router.put('/edit')
 async def edit_account(account_data: EditAccountScheme, sqlite_session=sqlite_db_dependency, session=db_dependency):
     if not session:
         raise HTTPException(500, detail='Incorrect dbms name')

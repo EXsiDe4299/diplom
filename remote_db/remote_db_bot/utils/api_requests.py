@@ -34,15 +34,15 @@ async def create_account_request(user_telegram_id, account_login, dbms_name):
 async def edit_account_request(user_telegram_id, account_login, account_password, new_account_login,
                                new_account_password, dbms_name):
     async with ClientSession() as client_session:
-        async with client_session.post(url=account_edit_url,
-                                       json={"account_data": {
-                                           "user_telegram_id": user_telegram_id,
-                                           "account_login": account_login,
-                                           "account_password": account_password,
-                                           "new_account_login": new_account_login,
-                                           "new_account_password": new_account_password
-                                       },
-                                           "dbms_name": dbms_name}) as response:
+        async with client_session.put(url=account_edit_url,
+                                      json={"account_data": {
+                                          "user_telegram_id": user_telegram_id,
+                                          "account_login": account_login,
+                                          "account_password": account_password,
+                                          "new_account_login": new_account_login,
+                                          "new_account_password": new_account_password
+                                      },
+                                          "dbms_name": dbms_name}) as response:
             status_code = response.status
             response = await response.json()
             return response, status_code
