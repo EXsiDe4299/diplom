@@ -1,7 +1,8 @@
 from aiohttp import ClientSession
 
 from common.api_urls import registration_url, get_accounts_url, account_create_url, account_edit_url, \
-    get_accounts_databases_url, create_database_url, delete_database_url, createdbuser_url
+    get_accounts_databases_url, create_database_url, delete_database_url, createdbuser_url, remote_edit_account_url, \
+    remote_create_database_url
 
 
 async def register_user_request(user_telegram_id):
@@ -99,4 +100,39 @@ async def createdbuser_request(user_login, user_password, telegram_id, db_type):
             'telegram_id': str(telegram_id),
             'db_type': db_type
         }):
+            pass
+
+
+async def remote_edit_account_request(user_telegram_id,
+                                      account_login,
+                                      account_password,
+                                      new_account_login,
+                                      new_account_password,
+                                      dbms_name):
+    async with ClientSession() as client_session:
+        async with client_session.put(url=remote_edit_account_url, json={
+            "user_telegram_id": user_telegram_id,
+            "account_login": account_login,
+            "account_password": account_password,
+            "new_account_login": new_account_login,
+            "new_account_password": new_account_password,
+            "dbms_name": dbms_name,
+        }):
+            pass
+
+
+async def remote_create_database_request(database_name,
+                                         user_telegram_id,
+                                         account_login,
+                                         account_password,
+                                         dbms_name):
+    async with ClientSession() as client_session:
+        async with client_session.post(url=remote_create_database_url,
+                                       json={
+                                           "database_name": database_name,
+                                           "user_telegram_id": str(user_telegram_id),
+                                           "account_login": account_login,
+                                           "account_password": account_password,
+                                           "dbms_name": dbms_name
+                                       }):
             pass

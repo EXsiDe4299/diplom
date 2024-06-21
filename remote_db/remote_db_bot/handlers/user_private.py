@@ -17,7 +17,7 @@ from filters.chat_types import ChatTypeFilter
 from keyboards.reply import create_reply_buttons
 from utils.api_requests import register_user_request, get_accounts_request, create_account_request, \
     edit_account_request, get_accounts_databases_request, create_database_request, delete_database_request, \
-    createdbuser_request
+    createdbuser_request, remote_edit_account_request, remote_create_database_request
 from utils.middleware import format_accounts_response, remove_excess_dbms_buttons, get_dbms_id_by_name, \
     get_dbms_buttons, format_databases_response, checking_text_correctness, checking_password_correctness
 
@@ -182,6 +182,12 @@ async def edit_account(message: types.Message, state: FSMContext):
                                                            dbms_name=dbms_name)
         match status_code:
             case 200:
+                await remote_edit_account_request(user_telegram_id=str(message.from_user.id),
+                                                  account_login=old_login,
+                                                  account_password=old_password,
+                                                  new_account_login=new_login,
+                                                  new_account_password=new_password,
+                                                  dbms_name=dbms_name)
                 await message.answer(
                     account_edited_text(response),
                     reply_markup=create_reply_buttons(main_menu_button))
@@ -253,6 +259,11 @@ async def create_database(message: types.Message, state: FSMContext):
                                                               dbms_name=dbms_name)
         match status_code:
             case 201:
+                await remote_create_database_request(database_name=database_name,
+                                                     user_telegram_id=message.from_user.id,
+                                                     account_login=account_login,
+                                                     account_password=account_password,
+                                                     dbms_name=dbms_name)
                 await message.answer(
                     database_created_text(database_name, response),
                     reply_markup=create_reply_buttons(main_menu_button))

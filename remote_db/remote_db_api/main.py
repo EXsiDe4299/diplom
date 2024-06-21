@@ -12,4 +12,4 @@ app.include_router(database_router, prefix='/database', tags=['database'])
 app.include_router(basic_router, tags=['basic'])
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="25.47.119.26", port=8000)
